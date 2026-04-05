@@ -1,4 +1,4 @@
-# INI Configuration Library
+# lotos-linux/ini
 
 A powerful Go library for parsing, managing, and generating INI configuration files with struct-based mapping, validation, and automatic documentation generation.
 
