@@ -8,11 +8,20 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
+// Section represents a single INI configuration section containing key-value pairs.
 type Section struct {
 	raw    map[string]string
 	logger hclog.Logger
 }
 
+// NewSection creates a new Section instance.
+//
+// Parameters:
+//   - raw: Map of key-value pairs for the section
+//   - logger: Logger instance for error and warning reporting
+//
+// Returns:
+//   - *Section: Initialized Section instance
 func NewSection(raw map[string]string, logger hclog.Logger) *Section {
 	return &Section{
 		raw:    raw,
@@ -20,6 +29,15 @@ func NewSection(raw map[string]string, logger hclog.Logger) *Section {
 	}
 }
 
+// String retrieves a string value by key with optional validation.
+//
+// Parameters:
+//   - key: Configuration key
+//   - def: Default value returned if key doesn't exist or validation fails
+//   - validateList: Optional. Allowed values. Nil disables validation
+//
+// Returns:
+//   - string: Value if key exists and passes validation, otherwise def
 func (b *Section) String(key string, def string, validateList []string) string {
 	val, exist := b.raw[key]
 	if !exist {
@@ -37,6 +55,15 @@ func (b *Section) String(key string, def string, validateList []string) string {
 	return val
 }
 
+// Strings retrieves a comma-separated string value as a slice.
+//
+// Parameters:
+//   - key: Configuration key
+//   - def: Default slice returned if key doesn't exist
+//   - sep: Optional. Custom separator. Defaults to ","
+//
+// Returns:
+//   - []string: Split and trimmed values, or def if key doesn't exist
 func (b *Section) Strings(key string, def []string, sep ...string) []string {
 	val, exist := b.raw[key]
 	if !exist {
@@ -53,6 +80,14 @@ func (b *Section) Strings(key string, def []string, sep ...string) []string {
 	return list
 }
 
+// Bool retrieves a boolean value by key.
+//
+// Parameters:
+//   - key: Configuration key
+//   - def: Default value returned if key doesn't exist
+//
+// Returns:
+//   - bool: true if value equals "true", false otherwise
 func (b *Section) Bool(key string, def bool) bool {
 	val, exist := b.raw[key]
 	if !exist {
@@ -63,6 +98,15 @@ func (b *Section) Bool(key string, def bool) bool {
 	return val == "true"
 }
 
+// Int retrieves an integer value by key with optional validation.
+//
+// Parameters:
+//   - key: Configuration key
+//   - def: Default value returned if key doesn't exist or validation fails
+//   - validator: Optional. Function to validate parsed value. Nil disables validation
+//
+// Returns:
+//   - int: Parsed integer value, or def on parse/validation failure
 func (b *Section) Int(key string, def int, validator func(int) bool) int {
 	val, exist := b.raw[key]
 	if !exist {
@@ -86,6 +130,15 @@ func (b *Section) Int(key string, def int, validator func(int) bool) int {
 	return res
 }
 
+// Ints retrieves a comma-separated string of integers as a slice.
+//
+// Parameters:
+//   - key: Configuration key
+//   - def: Default slice returned if key doesn't exist or parse fails
+//   - sep: Optional. Custom separator. Defaults to ","
+//
+// Returns:
+//   - []int: Parsed integer slice, or def on parse failure
 func (b *Section) Ints(key string, def []int, sep ...string) []int {
 	sliceStr, exist := b.raw[key]
 	if !exist {
@@ -114,6 +167,15 @@ func (b *Section) Ints(key string, def []int, sep ...string) []int {
 	return res
 }
 
+// Float32 retrieves a 32-bit float value by key with optional validation.
+//
+// Parameters:
+//   - key: Configuration key
+//   - def: Default value returned if key doesn't exist or validation fails
+//   - validator: Optional. Function to validate parsed value. Nil disables validation
+//
+// Returns:
+//   - float32: Parsed float32 value, or def on parse/validation failure
 func (b *Section) Float32(key string, def float32, validator func(float32) bool) float32 {
 	val, exist := b.raw[key]
 	if !exist {
@@ -139,6 +201,15 @@ func (b *Section) Float32(key string, def float32, validator func(float32) bool)
 	return res32
 }
 
+// Float64 retrieves a 64-bit float value by key with optional validation.
+//
+// Parameters:
+//   - key: Configuration key
+//   - def: Default value returned if key doesn't exist or validation fails
+//   - validator: Optional. Function to validate parsed value. Nil disables validation
+//
+// Returns:
+//   - float64: Parsed float64 value, or def on parse/validation failure
 func (b *Section) Float64(key string, def float64, validator func(float64) bool) float64 {
 	val, exist := b.raw[key]
 	if !exist {
@@ -267,6 +338,25 @@ func (b *Section) _float32(key string, def string, max string, min string) float
 	})
 }
 
+// Unmarshal parses section key-value pairs into a struct using struct tags.
+//
+// Supported struct tags:
+//   - key: Map struct field to different key name (defaults to field name)
+//   - def: Default value when key doesn't exist
+//   - valid: Comma-separated list of allowed values (string fields only)
+//   - min: Minimum allowed value (numeric fields)
+//   - max: Maximum allowed value (numeric fields)
+//   - sep: Custom separator for slice fields (defaults to ",")
+//
+// Supported field types:
+//   - string, bool, int, float32, float64
+//   - []string, []int
+//
+// Parameters:
+//   - s: Pointer to struct that will receive parsed values
+//
+// Returns:
+//   - error: Nil on success, error if s is not a pointer to struct
 func (b *Section) Unmarshal(s interface{}) error {
 	return structForRange(s, func(field reflect.StructField, fieldValue interface{}) interface{} {
 		key, ok := field.Tag.Lookup("key")

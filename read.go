@@ -5,6 +5,21 @@ import (
 	"strings"
 )
 
+// GetMap parses an INI file and returns a map of sections to key-value pairs.
+//
+// Parameters:
+//   - path: File system path to INI file
+//   - initialSection: Default section name for key-value pairs before first section declaration
+//
+// Returns:
+//   - map[string]map[string]string: Section name -> (key -> value) mapping
+//   - error: File read or parse error
+//
+// Behavior:
+//   - Lines starting with '#' are treated as comments and ignored
+//   - Inline comments after '#' are stripped
+//   - Empty lines are ignored
+//   - Section headers are enclosed in square brackets: [SectionName]
 func GetMap(path string, initialSection string) (map[string]map[string]string, error) {
 	lines, err := load(path)
 	if err != nil {

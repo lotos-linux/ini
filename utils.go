@@ -62,6 +62,16 @@ func structForRange(s interface{}, callback func(field reflect.StructField, curr
 	return nil
 }
 
+// Split splits a string by separator and trims whitespace from each element.
+//
+// Parameters:
+//   - s: String to split
+//   - sep: Separator string
+//
+// Returns:
+//   - []string: Trimmed string slice
+//
+// Example: Split("a, b, c", ",") -> ["a", "b", "c"]
 func Split(s string, sep string) []string {
 	slice := strings.Split(s, sep)
 	for i, str := range slice {
