@@ -1,4 +1,4 @@
-//go:generate go run github.com/lotos-linux/ini/cmd/ini-generator -i ./exemples/config.go -o .
+//go:generate go run github.com/lotos-linux/ini/cmd/ini-generator -i $GOFILE -o .
 package conf
 
 // ini:app.conf
@@ -12,7 +12,7 @@ type AppConfig struct {
 type ServerConfig struct {
 	// Server listen address
 	Host string `def:"localhost"`
-	// Server port number (1024 - 65535)
+	// Server port number
 	Port int `def:"8080" min:"1024" max:"65535"`
 	// Enable TLS mode
 	TLS bool `def:"false"`
@@ -58,6 +58,6 @@ type ColorsConfig struct {
 }
 
 type IgnoredStruct struct {
-	// Эта структура не имеет маркера ini: и будет проигнорирована
+	// This struct does not have an ini: marker and will be ignored
 	Value string `def:"test"`
 }

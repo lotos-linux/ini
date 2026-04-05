@@ -23,8 +23,8 @@ type Generator struct {
 
 type FieldInfo struct {
 	Name     string
-	Value    string // значение по умолчанию
-	Default  string //原始默认值
+	Value    string
+	Default  string
 	Valid    []string
 	Min      string
 	Max      string
@@ -93,7 +93,6 @@ func (g *Generator) Generate() error {
 	}
 	g.logInfo("File parsed successfully")
 
-	// Собираем все структуры
 	structs := make(map[string]*ast.StructType)
 	ast.Inspect(node, func(n ast.Node) bool {
 		if ts, ok := n.(*ast.TypeSpec); ok {
@@ -106,8 +105,6 @@ func (g *Generator) Generate() error {
 	})
 	g.logInfo("Found %d struct definitions", len(structs))
 
-	// Собираем комментарии к типам
-	// Собираем комментарии к типам через GenDecl
 	typeComments := make(map[string]string)
 
 	ast.Inspect(node, func(n ast.Node) bool {
@@ -119,7 +116,6 @@ func (g *Generator) Generate() error {
 				}
 			}
 		}
-		// также проверяем ts.Doc на случай, если комментарий прикреплен напрямую
 		if ts, ok := n.(*ast.TypeSpec); ok && ts.Doc != nil {
 			if _, exists := typeComments[ts.Name.Name]; !exists {
 				typeComments[ts.Name.Name] = ts.Doc.Text()
@@ -129,7 +125,6 @@ func (g *Generator) Generate() error {
 		return true
 	})
 
-	// Находим корневые структуры
 	rootConfigs := make([]RootConfig, 0)
 	iniMarkerRegex := regexp.MustCompile(`ini:(\S+\.conf)`)
 
@@ -190,19 +185,16 @@ func (g *Generator) Generate() error {
 
 func (g *Generator) processStruct(st *ast.StructType, structs map[string]*ast.StructType, currentSection string, rootConfig *RootConfig) error {
 	for _, field := range st.Fields.List {
-		// Получаем теги
 		tag := reflect.StructTag("")
 		if field.Tag != nil {
 			tag = reflect.StructTag(strings.Trim(field.Tag.Value, "`"))
 		}
 
-		// Получаем комментарий поля
 		fieldComment := ""
 		if field.Doc != nil {
 			fieldComment = strings.TrimSpace(field.Doc.Text())
 		}
 
-		// Определяем тип поля
 		var fieldType string
 		var elemKind string
 		var embeddedStruct *ast.StructType = nil
@@ -239,10 +231,8 @@ func (g *Generator) processStruct(st *ast.StructType, structs map[string]*ast.St
 			continue
 		}
 
-		// Проверяем тег section для вложенных структур
 		sectionTag := tag.Get("section")
 
-		// Если это вложенная структура с section тегом
 		if sectionTag != "" && embeddedStruct != nil {
 			g.logDebug("Processing embedded struct %s with section tag: %s", fieldType, sectionTag)
 			if err := g.processStruct(embeddedStruct, structs, sectionTag, rootConfig); err != nil {
@@ -251,7 +241,6 @@ func (g *Generator) processStruct(st *ast.StructType, structs map[string]*ast.St
 			continue
 		}
 
-		// Если это анонимное поле (встроенная структура) без тега - игнорируем
 		if len(field.Names) == 0 && embeddedStruct != nil {
 			if sectionTag == "" {
 				g.logDebug("Ignoring embedded struct %s without section tag", fieldType)
@@ -259,29 +248,24 @@ func (g *Generator) processStruct(st *ast.StructType, structs map[string]*ast.St
 			}
 		}
 
-		// Пропускаем неэкспортируемые поля
 		if len(field.Names) == 0 {
 			continue
 		}
 
 		fieldName := field.Names[0].Name
 
-		// Пропускаем приватные поля
 		if !ast.IsExported(fieldName) {
 			g.logDebug("Skipping private field: %s", fieldName)
 			continue
 		}
 
-		// Определяем имя ключа
 		keyName := fieldName
 
-		// Определяем имя секции
 		sectionName := currentSection
 		if sectionName == "" {
 			sectionName = "General"
 		}
 
-		// Получаем значения из тегов
 		def := tag.Get("def")
 		valid := tag.Get("valid")
 		min := tag.Get("min")
@@ -300,7 +284,6 @@ func (g *Generator) processStruct(st *ast.StructType, structs map[string]*ast.St
 			}
 		}
 
-		// Создаём информацию о поле
 		fieldInfo := FieldInfo{
 			Name:     keyName,
 			Value:    def,
@@ -316,7 +299,6 @@ func (g *Generator) processStruct(st *ast.StructType, structs map[string]*ast.St
 			Kind:     fieldType,
 		}
 
-		// Добавляем в секцию
 		found := false
 		for i := range rootConfig.Sections {
 			if rootConfig.Sections[i].Name == sectionName {
@@ -356,7 +338,6 @@ func (g *Generator) writeINIFile(rc RootConfig) error {
 		buffer.WriteString(fmt.Sprintf("[%s]\n", section.Name))
 
 		for _, key := range section.Keys {
-			// Формируем строку валидации
 			var validationParts []string
 			if key.IsBool {
 				validationParts = append(validationParts, "true, false")
@@ -377,7 +358,6 @@ func (g *Generator) writeINIFile(rc RootConfig) error {
 				validationStr = "(" + strings.Join(validationParts, ", ") + ")"
 			}
 
-			// Формируем строку комментария
 			var commentLine string
 			if key.Comment != "" || validationStr != "" {
 				commentLine = "#"
@@ -394,7 +374,6 @@ func (g *Generator) writeINIFile(rc RootConfig) error {
 				buffer.WriteString(commentLine + "\n")
 			}
 
-			// Пишем ключ и значение
 			buffer.WriteString(fmt.Sprintf("%s = %s\n", key.Name, key.Value))
 		}
 	}
