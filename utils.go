@@ -27,6 +27,11 @@ func structForRange(s interface{}, callback func(field reflect.StructField, curr
 		field := v.Field(i)
 		fieldType := t.Field(i)
 
+		if !field.CanInterface() {
+			logger.Debug("Skipping private field", "name", fieldType.Name)
+			continue
+		}
+
 		currentValue := field.Interface()
 
 		newValue := callback(fieldType, currentValue)
